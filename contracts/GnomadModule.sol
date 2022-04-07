@@ -16,7 +16,6 @@ contract GnomadModule is Module {
     );
 
     IXAppConnectionManager public manager;
-    address public replica;
     bytes32 public controller;
     uint32 public origin;
 
@@ -30,7 +29,6 @@ contract GnomadModule is Module {
         address _owner,
         address _avatar,
         address _target,
-        address _replica,
         address _manager,
         bytes32 _controller,
         uint32 _origin
@@ -39,7 +37,6 @@ contract GnomadModule is Module {
             _owner,
             _avatar,
             _target,
-            _replica,
             _manager,
             _controller,
             _origin
@@ -52,18 +49,16 @@ contract GnomadModule is Module {
             address _owner,
             address _avatar,
             address _target,
-            address _replica,
             address _manager,
             bytes32 _controller,
             uint32 _origin
-        ) = abi.decode(initParams, (address, address, address, address, address, bytes32, uint32));
+        ) = abi.decode(initParams, (address, address, address, address, bytes32, uint32));
         __Ownable_init();
 
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         avatar = _avatar;
         target = _target;
-        replica = _replica;
         manager = IXAppConnectionManager(_manager);
         controller = _controller;
         origin = _origin;
@@ -82,11 +77,11 @@ contract GnomadModule is Module {
     }
 
     /// @dev Set the Replica contract address
-    /// @param _replica Address of the Replica contract
+    /// @param _manager Address of the Xapp manager contract
     /// @notice This can only be called by the avatar
-    function setReplica(address _replica) public onlyOwner {
-        require(address(replica) != _replica, "Replica address already set to this");
-        replica = _replica;
+    function setManager(IXAppConnectionManager _manager) public onlyOwner {
+        require(manager != _manager, "Replica address already set to this");
+        manager = _manager;
     }
 
     /// @dev Set the approved chainId
