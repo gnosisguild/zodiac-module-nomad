@@ -3,6 +3,10 @@ pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 
+interface IXAppConnectionManager {
+    function isReplica(address _replica) external view returns (bool);
+}
+
 contract GnomadModule is Module {
     event GnomadModuleSetup(
         address indexed initiator,
@@ -11,31 +15,34 @@ contract GnomadModule is Module {
         address target
     );
 
+    IXAppConnectionManager public manager;
     address public replica;
-    address public controller;
-    bytes32 public chainId;
+    bytes32 public controller;
+    uint32 public origin;
 
     /// @param _owner Address of the  owner
     /// @param _avatar Address of the avatar (e.g. a Safe)
     /// @param _target Address of the contract that will call exec function
-    /// @param _amb Address of the AMB contract
+    /// @param _manager Address of the AMB contract
     /// @param _controller Address of the authorized controller contract on the other side of the bridge
-    /// @param _chainId Address of the authorized chainId from which owner can initiate transactions
+    /// @param _origin Address of the authorized origin (chainId) from which owner can initiate transactions
     constructor(
         address _owner,
         address _avatar,
         address _target,
         address _replica,
-        address _controller,
-        bytes32 _chainId
+        address _manager,
+        bytes32 _controller,
+        uint32 _origin
     ) {
         bytes memory initParams = abi.encode(
             _owner,
             _avatar,
             _target,
             _replica,
+            _manager,
             _controller,
-            _chainId
+            _origin
         );
         setUp(initParams);
     }
@@ -46,9 +53,10 @@ contract GnomadModule is Module {
             address _avatar,
             address _target,
             address _replica,
-            address _controller,
-            bytes32 _chainId
-        ) = abi.decode(initParams, (address, address, address, address, address, bytes32));
+            address _manager,
+            bytes32 _controller,
+            uint32 _origin
+        ) = abi.decode(initParams, (address, address, address, address, address, bytes32, uint32));
         __Ownable_init();
 
         require(_avatar != address(0), "Avatar can not be zero address");
@@ -56,19 +64,20 @@ contract GnomadModule is Module {
         avatar = _avatar;
         target = _target;
         replica = _replica;
+        manager = IXAppConnectionManager(_manager);
         controller = _controller;
-        chainId = _chainId;
+        origin = _origin;
 
         transferOwnership(_owner);
 
-        emit AmbModuleSetup(msg.sender, _owner, _avatar, _target);
+        emit GnomadModuleSetup(msg.sender, _owner, _avatar, _target);
     }
 
-    /// @dev Check that the amb, chainId, and owner are valid
-    modifier onlyValid() {
-        require(msg.sender == address(amb), "Unauthorized amb");
-        require(amb.messageSourceChainId() == chainId, "Unauthorized chainId");
-        require(amb.messageSender() == controller, "Unauthorized controller");
+    /// @dev Check that the replica, origin, and controller are valid
+    modifier onlyValid(address _replica, uint32 _origin, bytes32 _controller) {
+        require(manager.isReplica(_replica), "sender must be a valid replica");
+        require(_origin == origin, "Unauthorized chainId");
+        require(_controller == controller, "Unauthorized controller");
         _;
     }
 
@@ -81,17 +90,17 @@ contract GnomadModule is Module {
     }
 
     /// @dev Set the approved chainId
-    /// @param _chainId ID of the approved network
+    /// @param _origin ID of the approved network
     /// @notice This can only be called by the avatar
-    function setChainId(bytes32 _chainId) public onlyOwner {
-        require(chainId != _chainId, "chainId already set to this");
-        chainId = _chainId;
+    function setOrigin(uint32 _origin) public onlyOwner {
+        require(origin != _origin, "chainId already set to this");
+        origin = _origin;
     }
 
     /// @dev Set the controller address
     /// @param _controller Set the address of controller on the other side of the bridge
     /// @notice This can only be called by the avatar
-    function setController(address _controller) public onlyOwner {
+    function setController(bytes32 _controller) public onlyOwner {
         require(controller != _controller, "controller already set to this");
         controller = _controller;
     }
@@ -109,19 +118,14 @@ contract GnomadModule is Module {
         uint32, // _nonce (unused)
         bytes32 _sender,
         bytes memory _message
-    ) external onlyReplica onlyValid(_origin, _sender) {
-        bytes29 _msg = _message.ref(0);
-        bytes29 _view = _msg.tryAsBatch();
-        if (_view.notNull()) {
-            _handleBatch(_view);
-            return;
-        }
-        _view = _msg.tryAsTransferGovernor();
-        if (_view.notNull()) {
-            _handleTransferGovernor(_view);
-            return;
-        }
-        require(false, "!valid message type");
+    ) external onlyValid(msg.sender, _origin, _sender) {
+        (
+            address _to,
+            uint256 _value,
+            bytes memory _data,
+            Enum.Operation _operation
+        ) = abi.decode(_message, (address, uint256, bytes, Enum.Operation));
+        executeTransaction(_to, _value, _data, _operation);
     }
 
     /// @dev Executes a transaction initated by the AMB
