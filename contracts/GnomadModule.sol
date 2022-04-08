@@ -22,7 +22,7 @@ contract GnomadModule is Module {
     /// @param _owner Address of the  owner
     /// @param _avatar Address of the avatar (e.g. a Safe)
     /// @param _target Address of the contract that will call exec function
-    /// @param _manager Address of the AMB contract
+    /// @param _manager Address of the Nomad replica manager contract
     /// @param _controller Address of the authorized controller contract on the other side of the bridge
     /// @param _origin Address of the authorized origin (chainId) from which owner can initiate transactions
     constructor(
@@ -123,7 +123,7 @@ contract GnomadModule is Module {
         executeTransaction(_to, _value, _data, _operation);
     }
 
-    /// @dev Executes a transaction initated by the AMB
+    /// @dev Executes a transaction initated by the Nomad Bridge
     /// @param to Target of the transaction that should be executed
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
