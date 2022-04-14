@@ -54,6 +54,7 @@ contract GnomadModule is Module {
             bytes32 _controller,
             uint32 _controllerDomain
         ) = abi.decode(initParams, (address, address, address, address, bytes32, uint32));
+        // __Ownable_init prevents this function from being called again after contract construction
         __Ownable_init();
 
         require(_avatar != address(0), "Avatar can not be zero address");
@@ -77,7 +78,8 @@ contract GnomadModule is Module {
     }
 
     /// @dev Set the Replica contract address
-    /// @param _manager Address of the Xapp manager contract
+    /// @param _manager Address of the xApp Manager contract,
+    /// which registers valid Replica contracts and Watchers
     /// @notice This can only be called by the owner
     function setManager(IXAppConnectionManager _manager) public onlyOwner {
         require(manager != _manager, "Replica address already set to this");
@@ -105,9 +107,9 @@ contract GnomadModule is Module {
     /// sent from the Governor chain via Nomad.
     /// Governor chain should never receive messages,
     /// because non-Governor chains are not able to send them
-    /// @param _origin The domain (of the Governor Router)
-    /// @param _sender The message sender (must be the Governor Router)
-    /// @param _message The message
+    /// @param _origin The domain from which the message was sent (must be the domain of the controller)
+    /// @param _sender The message sender (must be the controller)
+    /// @param _message The message (abi-encoded params for executeTransaction)
     function handle(
         uint32 _origin,
         uint32, // _nonce (unused)
