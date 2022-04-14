@@ -86,20 +86,14 @@ contract GnomadModule is Module {
         manager = _manager;
     }
 
-    /// @dev Set the approved chainId
-    /// @param _origin ID of the approved network
+    /// @dev Set the controller
+    /// @param _controller Address of controller on the other side of the bridge
+    /// @param _controllerDomain Domain of controller on the other side of the bridge
     /// @notice This can only be called by the owner
-    function setControllerDomain(uint32 _controllerDomain) public onlyOwner {
-        require(controllerDomain != _controllerDomain, "chainId already set to this");
-        controllerDomain = _controllerDomain;
-    }
-
-    /// @dev Set the controller address
-    /// @param _controller Set the address of controller on the other side of the bridge
-    /// @notice This can only be called by the owner
-    function setController(bytes32 _controller) public onlyOwner {
-        require(controller != _controller, "controller already set to this");
+    function setController(bytes32 _controller, uint32 _controllerDomain) public onlyOwner {
+        require(!isController(_controller, _controllerDomain), "controller already set to this");
         controller = _controller;
+        controllerDomain = _controllerDomain;
     }
 
     /// @notice Handle Nomad messages
