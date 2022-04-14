@@ -16,7 +16,7 @@ contract GnomadModule is Module {
     );
 
     IXAppConnectionManager public manager;
-    bytes32 public controller;
+    address public controller;
     uint32 public controllerDomain;
 
     /// @param _owner Address of the  owner
@@ -31,7 +31,7 @@ contract GnomadModule is Module {
         address _avatar,
         address _target,
         address _manager,
-        bytes32 _controller,
+        address _controller,
         uint32 _controllerDomain
     ) {
         bytes memory initParams = abi.encode(
@@ -51,9 +51,9 @@ contract GnomadModule is Module {
             address _avatar,
             address _target,
             address _manager,
-            bytes32 _controller,
+            address _controller,
             uint32 _controllerDomain
-        ) = abi.decode(initParams, (address, address, address, address, bytes32, uint32));
+        ) = abi.decode(initParams, (address, address, address, address, address, uint32));
         // __Ownable_init prevents this function from being called again after contract construction
         __Ownable_init();
 
@@ -73,7 +73,9 @@ contract GnomadModule is Module {
     /// @dev Check that the replica, origin, and controller are valid
     modifier onlyValid(address _caller, uint32 _origin, bytes32 _sender) {
         require(manager.isReplica(_caller), "caller must be a valid replica");
-        require(isController(_sender, _origin), "Unauthorized controller");
+        // coerce Nomad bytes32 sender to address
+        address _senderAddr = address(uint160(uint256(_sender)));
+        require(isController(_senderAddr, _origin), "Unauthorized controller");
         _;
     }
 
@@ -90,7 +92,7 @@ contract GnomadModule is Module {
     /// @param _controller Address of controller on the other side of the bridge
     /// @param _controllerDomain Domain of controller on the other side of the bridge
     /// @notice This can only be called by the owner
-    function setController(bytes32 _controller, uint32 _controllerDomain) public onlyOwner {
+    function setController(address _controller, uint32 _controllerDomain) public onlyOwner {
         require(!isController(_controller, _controllerDomain), "controller already set to this");
         controller = _controller;
         controllerDomain = _controllerDomain;
@@ -133,7 +135,7 @@ contract GnomadModule is Module {
         require(exec(to, value, data, operation), "Module transaction failed");
     }
 
-    function isController(bytes32 _controller, uint32 _controllerDomain) public view returns (bool) {
+    function isController(address _controller, uint32 _controllerDomain) public view returns (bool) {
         return _controller == controller && _controllerDomain == controllerDomain;
     }
 }
