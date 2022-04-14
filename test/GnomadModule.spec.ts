@@ -6,7 +6,7 @@ const ZeroAddress = "0x0000000000000000000000000000000000000000";
 const FortyTwo =
   "0x000000000000000000000000000000000000000000000000000000000000002a";
 
-describe("AMBModule", async () => {
+describe("GnomadModule", async () => {
 
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
@@ -14,48 +14,35 @@ describe("AMBModule", async () => {
     const avatar = await Avatar.deploy();
     const Mock = await hre.ethers.getContractFactory("Mock");
     const mock = await Mock.deploy();
-    const amb = await hre.ethers.getContractAt("IAMB", mock.address);
-    const badMock = await Mock.deploy();
-    const badAmb = await hre.ethers.getContractAt("IAMB", badMock.address);
+    const ConnectionManager = await hre.ethers.getContractFactory("MockConnectionManager");
+    const connectionManager = await ConnectionManager.deploy();
+    )
 
     const signers = await hre.ethers.getSigners();
 
-    await mock.givenMethodReturnUint(
-      amb.interface.getSighash("messageSourceChainId"),
-      1
-    );
-    await badMock.givenMethodReturnUint(
-      badAmb.interface.getSighash("messageSourceChainId"),
-      2
-    );
-    await mock.givenMethodReturnAddress(
-      amb.interface.getSighash("messageSender"),
-      signers[0].address
-    );
-    await badMock.givenMethodReturnAddress(
-      badAmb.interface.getSighash("messageSender"),
-      signers[1].address
-    );
-
-
-    return { Avatar, avatar, module, mock, badMock, amb, badAmb, signers };
+    return { Avatar, avatar, module, mock, connectionManager, signers };
   });
 
   const setupTestWithTestAvatar = deployments.createFixture(async () => {
     const base = await baseSetup();
-    const Module = await hre.ethers.getContractFactory("AMBModule");
+    const Module = await hre.ethers.getContractFactory("GnomadModule");
     const provider = await hre.ethers.getDefaultProvider();
     const network = await provider.getNetwork();
+    // TODO: convert home sending contract address to bytes32
+    const controller = "";
+    // TODO: convert home chainID to uint32
+    const origin = 0;
+    const controller = "";
     const module = await Module.deploy(
       base.avatar.address,
       base.avatar.address,
       base.avatar.address,
-      base.amb.address,
-      base.signers[0].address,
-      base.amb.messageSourceChainId()
+      base.connectionManager.address,
+      controller,
+      origin
     );
     await base.avatar.setModule(module.address);
-    return { ...base, Module, module, network };
+    return { ...base, Module, module, network, origin, controller };
   });
 
   const [user1] = waffle.provider.getWallets();
@@ -76,18 +63,18 @@ describe("AMBModule", async () => {
     });
 
     it("should emit event because of successful set up", async () => {
-      const Module = await hre.ethers.getContractFactory("AMBModule");
+      const Module = await hre.ethers.getContractFactory("GnomadModule");
       const module = await Module.deploy(
         user1.address,
         user1.address,
         user1.address,
         user1.address,
-        user1.address,
-        FortyTwo
+        "0x0",
+        0
       );
       await module.deployed();
       await expect(module.deployTransaction)
-        .to.emit(module, "AmbModuleSetup")
+        .to.emit(module, "GnomadModuleSetup")
         .withArgs(user1.address, user1.address, user1.address, user1.address);
     });
 
@@ -99,52 +86,52 @@ describe("AMBModule", async () => {
           user1.address,
           ZeroAddress,
           ZeroAddress,
-          ZeroAddress,
-          FortyTwo
+        "0x0",
+        0
         )
       ).to.be.revertedWith("Target can not be zero address");
     });
   });
 
-  describe("setAmb()", async () => {
+  describe("setGnomad()", async () => {
     it("throws if not authorized", async () => {
       const { module } = await setupTestWithTestAvatar();
-      await expect(module.setAmb(module.address)).to.be.revertedWith(
+      await expect(module.setManager(module.address)).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("throws if already set to input address", async () => {
-      const { module, avatar, amb } = await setupTestWithTestAvatar();
+      const { module, avatar, connectionManager } = await setupTestWithTestAvatar();
 
-      expect(await module.amb()).to.be.equals(amb.address);
+      expect(await module.manager()).to.be.equals(connectionManager.address);
 
-      const calldata = module.interface.encodeFunctionData("setAmb", [
-        amb.address,
+      const calldata = module.interface.encodeFunctionData("setManager", [
+        connectionManager.address,
       ]);
       await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
-        "AMB address already set to this"
+        "Connection Manager address already set to this"
       );
     });
 
-    it("updates AMB address", async () => {
-      const { module, avatar, amb } = await setupTestWithTestAvatar();
+    it("updates ConnectionManager address", async () => {
+      const { module, avatar, connectionManager } = await setupTestWithTestAvatar();
 
-      expect(await module.amb()).to.be.equals(amb.address);
+      expect(await module.manager()).to.be.equals(connectionManager.address);
 
-      const calldata = module.interface.encodeFunctionData("setAmb", [
+      const calldata = module.interface.encodeFunctionData("setManager", [
         user1.address,
       ]);
       avatar.exec(module.address, 0, calldata);
 
-      expect(await module.amb()).to.be.equals(user1.address);
+      expect(await module.manager()).to.be.equals(user1.address);
     });
   });
 
-  describe("setChainId()", async () => {
+  describe("setOrigin()", async () => {
     it("throws if not authorized", async () => {
       const { module } = await setupTestWithTestAvatar();
-      await expect(module.setChainId(FortyTwo)).to.be.revertedWith(
+      await expect(module.setOrigin(FortyTwo)).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
@@ -152,8 +139,8 @@ describe("AMBModule", async () => {
     it("throws if already set to input address", async () => {
       const { module, avatar, network } = await setupTestWithTestAvatar();
       const currentChainID = await module.chainId();
-
-      const calldata = module.interface.encodeFunctionData("setChainId", [
+      // todo convert chainID
+      const calldata = module.interface.encodeFunctionData("setOrigin", [
         currentChainID,
       ]);
       await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
@@ -161,13 +148,13 @@ describe("AMBModule", async () => {
       );
     });
 
-    it("updates chainId", async () => {
+    it("updates origin", async () => {
       const { module, avatar, network } = await setupTestWithTestAvatar();
       let currentChainID = await module.chainId();
       const newChainID = FortyTwo;
       expect(await currentChainID._hex).to.not.equals(newChainID);
 
-      const calldata = module.interface.encodeFunctionData("setChainId", [
+      const calldata = module.interface.encodeFunctionData("setOrigin", [
         newChainID,
       ]);
       avatar.exec(module.address, 0, calldata);
@@ -216,7 +203,7 @@ describe("AMBModule", async () => {
   });
 
   describe("executeTrasnaction()", async () => {
-    it("throws if amb is unauthorized", async () => {
+    it("throws if manager replica is unauthorized", async () => {
       const { module } = await setupTestWithTestAvatar();
       const tx = {
         to: user1.address,
@@ -224,52 +211,43 @@ describe("AMBModule", async () => {
         data: "0xbaddad",
         operation: 0,
       };
+      //todo
       await expect(
-        module.executeTransaction(tx.to, tx.value, tx.data, tx.operation)
-      ).to.be.revertedWith("Unauthorized amb");
+        module.handle()
+      ).to.be.revertedWith("Unauthorized replica");
     });
 
-    it("throws if chainId is unauthorized", async () => {
-      const { mock, module, amb } = await setupTestWithTestAvatar();
-      const ambTx = await module.populateTransaction.executeTransaction(
+    it("throws if origin is unauthorized", async () => {
+      const { mock, module, connectionManager } = await setupTestWithTestAvatar();
+      const gnomadTx = await module.populateTransaction.executeTransaction(
         user1.address,
         0,
         "0xbaddad",
         0
       );
-
-      await mock.givenMethodReturnUint(
-        amb.interface.getSighash("messageSourceChainId"),
-        2
-      );
-
-      await expect(mock.exec(module.address, 0, ambTx.data)).to.be.revertedWith(
+      // todo
+      await expect(mock.exec(module.address, 0, gnomadTx.data)).to.be.revertedWith(
         "Unauthorized chainId"
       );
     });
 
     it("throws if messageSender is unauthorized", async () => {
-      const { mock, module, signers, amb } = await setupTestWithTestAvatar();
-      const ambTx = await module.populateTransaction.executeTransaction(
+      const { mock, module, signers, connectionManager } = await setupTestWithTestAvatar();
+      const gnomadTx = await module.populateTransaction.executeTransaction(
         user1.address,
         0,
         "0xbaddad",
         0
       );
 
-      await mock.givenMethodReturnUint(
-        amb.interface.getSighash("messageSender"),
-        signers[1].address
-      );
-
-      await expect(mock.exec(module.address, 0, ambTx.data)).to.be.revertedWith(
+      await expect(mock.exec(module.address, 0, gnomadTx.data)).to.be.revertedWith(
         "Unauthorized controller"
       );
     });
 
     it("throws if module transaction fails", async () => {
       const { mock, module } = await setupTestWithTestAvatar();
-      const ambTx = await module.populateTransaction.executeTransaction(
+      const gnomadTx = await module.populateTransaction.executeTransaction(
         user1.address,
         10000000,
         "0xbaddad",
@@ -277,7 +255,7 @@ describe("AMBModule", async () => {
       );
 
       // should fail because value is too high
-      await expect(mock.exec(module.address, 0, ambTx.data)).to.be.revertedWith(
+      await expect(mock.exec(module.address, 0, gnomadTx.data)).to.be.revertedWith(
         "Module transaction failed"
       );
     });
@@ -289,14 +267,14 @@ describe("AMBModule", async () => {
         signers[1].address
       );
 
-      const ambTx = await module.populateTransaction.executeTransaction(
+      const gnomadTx = await module.populateTransaction.executeTransaction(
         module.address,
         0,
         moduleTx.data,
         0
       );
 
-      await mock.exec(module.address, 0, ambTx.data);
+      await mock.exec(module.address, 0, gnomadTx.data);
 
       expect(await module.controller()).to.be.equals(signers[1].address);
     });
