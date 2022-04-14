@@ -78,7 +78,7 @@ contract GnomadModule is Module {
 
     /// @dev Set the Replica contract address
     /// @param _manager Address of the Xapp manager contract
-    /// @notice This can only be called by the avatar
+    /// @notice This can only be called by the owner
     function setManager(IXAppConnectionManager _manager) public onlyOwner {
         require(manager != _manager, "Replica address already set to this");
         manager = _manager;
@@ -86,7 +86,7 @@ contract GnomadModule is Module {
 
     /// @dev Set the approved chainId
     /// @param _origin ID of the approved network
-    /// @notice This can only be called by the avatar
+    /// @notice This can only be called by the owner
     function setOrigin(uint32 _origin) public onlyOwner {
         require(origin != _origin, "chainId already set to this");
         origin = _origin;
@@ -94,7 +94,7 @@ contract GnomadModule is Module {
 
     /// @dev Set the controller address
     /// @param _controller Set the address of controller on the other side of the bridge
-    /// @notice This can only be called by the avatar
+    /// @notice This can only be called by the owner
     function setController(bytes32 _controller) public onlyOwner {
         require(controller != _controller, "controller already set to this");
         controller = _controller;
