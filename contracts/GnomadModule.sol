@@ -15,23 +15,31 @@ contract GnomadModule is Module {
         address target
     );
 
+    /// Address of the Nomad xAppConnectionManager contract
+    /// which registers valid Replica contracts and Watchers
     IXAppConnectionManager public manager;
-    bytes32 public controller;
-    uint32 public origin;
+    /// Address of the remote controller which is authorized
+    /// to initiate execTransactions on the module from a remote domain.
+    address public controller;
+    /// Domain of the controller which is authorized to send messages to the module.
+    /// Domains are unique identifiers within Nomad for a domain (chain, L1, L2, sidechain, rollup, etc).
+    uint32 public controllerDomain;
 
-    /// @param _owner Address of the  owner
-    /// @param _avatar Address of the avatar (e.g. a Safe)
-    /// @param _target Address of the contract that will call exec function
-    /// @param _manager Address of the Nomad replica manager contract
-    /// @param _controller Address of the authorized controller contract on the other side of the bridge
-    /// @param _origin Address of the authorized origin (chainId) from which owner can initiate transactions
+    /// @param _owner Address of the  owner (TODO: elaborate)
+    /// @param _avatar Address of the avatar (e.g. a Safe) (TODO: elaborate)
+    /// @param _target Address of the contract that will call exec function (TODO: elaborate)
+    /// @param _manager Address of the Nomad xAppConnectionManager contract
+    /// which registers valid Replica contracts and Watchers
+    /// @param _controller Address of the controller which is authorized to send messages to the module from a remote domain.
+    /// @param _controllerDomain Domain of the controller which is authorized to send messages to the module.
+    /// Domains are unique identifiers within Nomad for a domain (chain, L1, L2, sidechain, rollup, etc).
     constructor(
         address _owner,
         address _avatar,
         address _target,
         address _manager,
-        bytes32 _controller,
-        uint32 _origin
+        address _controller,
+        uint32 _controllerDomain
     ) {
         bytes memory initParams = abi.encode(
             _owner,
@@ -39,7 +47,7 @@ contract GnomadModule is Module {
             _target,
             _manager,
             _controller,
-            _origin
+            _controllerDomain
         );
         setUp(initParams);
     }
@@ -50,9 +58,10 @@ contract GnomadModule is Module {
             address _avatar,
             address _target,
             address _manager,
-            bytes32 _controller,
-            uint32 _origin
-        ) = abi.decode(initParams, (address, address, address, address, bytes32, uint32));
+            address _controller,
+            uint32 _controllerDomain
+        ) = abi.decode(initParams, (address, address, address, address, address, uint32));
+        // __Ownable_init prevents this function from being called again after contract construction
         __Ownable_init();
 
         require(_avatar != address(0), "Avatar can not be zero address");
@@ -61,7 +70,7 @@ contract GnomadModule is Module {
         target = _target;
         manager = IXAppConnectionManager(_manager);
         controller = _controller;
-        origin = _origin;
+        controllerDomain = _controllerDomain;
 
         transferOwnership(_owner);
 
@@ -69,45 +78,40 @@ contract GnomadModule is Module {
     }
 
     /// @dev Check that the replica, origin, and controller are valid
-    modifier onlyValid(address _replica, uint32 _origin, bytes32 _controller) {
-        require(manager.isReplica(_replica), "sender must be a valid replica");
-        require(_origin == origin, "Unauthorized chainId");
-        require(_controller == controller, "Unauthorized controller");
+    modifier onlyValid(address _caller, uint32 _origin, bytes32 _sender) {
+        require(manager.isReplica(_caller), "caller must be a valid replica");
+        // coerce Nomad bytes32 sender to address
+        address _senderAddr = address(uint160(uint256(_sender)));
+        require(isController(_senderAddr, _origin), "Unauthorized controller");
         _;
     }
 
     /// @dev Set the Replica contract address
-    /// @param _manager Address of the Xapp manager contract
+    /// @param _manager Address of the Nomad xAppConnectionManager contract,
+    /// which registers valid Replica contracts and Watchers
     /// @notice This can only be called by the owner
     function setManager(IXAppConnectionManager _manager) public onlyOwner {
         require(manager != _manager, "Replica address already set to this");
         manager = _manager;
     }
 
-    /// @dev Set the approved chainId
-    /// @param _origin ID of the approved network
+    /// @dev Set the controller
+    /// @param _controller Address of controller on the other side of the bridge
+    /// @param _controllerDomain Domain of controller on the other side of the bridge
     /// @notice This can only be called by the owner
-    function setOrigin(uint32 _origin) public onlyOwner {
-        require(origin != _origin, "chainId already set to this");
-        origin = _origin;
-    }
-
-    /// @dev Set the controller address
-    /// @param _controller Set the address of controller on the other side of the bridge
-    /// @notice This can only be called by the owner
-    function setController(bytes32 _controller) public onlyOwner {
-        require(controller != _controller, "controller already set to this");
+    function setController(address _controller, uint32 _controllerDomain) public onlyOwner {
+        require(!isController(_controller, _controllerDomain), "controller already set to this");
         controller = _controller;
+        controllerDomain = _controllerDomain;
     }
 
-    /// @notice Handle Nomad messages
-    /// For all non-Governor chains to handle messages
-    /// sent from the Governor chain via Nomad.
-    /// Governor chain should never receive messages,
-    /// because non-Governor chains are not able to send them
-    /// @param _origin The domain (of the Governor Router)
-    /// @param _sender The message sender (must be the Governor Router)
-    /// @param _message The message
+    /// @notice Handle incoming execTransactions sent from the Controller via Nomad
+    /// the controller is authorized to send execTransactions across-chains
+    /// from the controller's native domain to be executed on this module
+    /// execTransactions are sent via Nomad arbitrary message-passing channels
+    /// @param _origin The domain from which the message was sent (must be the domain of the controller)
+    /// @param _sender The message sender (must be the controller)
+    /// @param _message The message (abi-encoded params for executeTransaction)
     function handle(
         uint32 _origin,
         uint32, // _nonce (unused)
@@ -123,7 +127,7 @@ contract GnomadModule is Module {
         executeTransaction(_to, _value, _data, _operation);
     }
 
-    /// @dev Executes a transaction initated by the Nomad Bridge
+    /// @dev Executes a transaction initiated by the remote controller
     /// @param to Target of the transaction that should be executed
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
@@ -135,5 +139,12 @@ contract GnomadModule is Module {
         Enum.Operation operation
     ) internal {
         require(exec(to, value, data, operation), "Module transaction failed");
+    }
+
+    /// @param _controller Address of controller on the other side of the bridge
+    /// @param _controllerDomain Domain of controller on the other side of the bridge
+    /// @return TRUE if the provided (address,domain) tuple identifies the authorized remote controller
+    function isController(address _controller, uint32 _controllerDomain) public view returns (bool) {
+        return _controller == controller && _controllerDomain == controllerDomain;
     }
 }
