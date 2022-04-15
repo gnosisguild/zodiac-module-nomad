@@ -15,17 +15,24 @@ contract GnomadModule is Module {
         address target
     );
 
+    /// Address of the Nomad xAppConnectionManager contract
+    /// which registers valid Replica contracts and Watchers
     IXAppConnectionManager public manager;
+    /// Address of the remote controller which is authorized
+    /// to initiate execTransactions on the module from a remote domain.
     address public controller;
+    /// Domain of the controller which is authorized to send messages to the module.
+    /// Domains are unique identifiers within Nomad for a domain (chain, L1, L2, sidechain, rollup, etc).
     uint32 public controllerDomain;
 
-    /// @param _owner Address of the  owner
-    /// @param _avatar Address of the avatar (e.g. a Safe)
-    /// @param _target Address of the contract that will call exec function
-    /// @param _manager Address of the Nomad xAppConnectionManager contract.
+    /// @param _owner Address of the  owner (TODO: elaborate)
+    /// @param _avatar Address of the avatar (e.g. a Safe) (TODO: elaborate)
+    /// @param _target Address of the contract that will call exec function (TODO: elaborate)
+    /// @param _manager Address of the Nomad xAppConnectionManager contract
+    /// which registers valid Replica contracts and Watchers
     /// @param _controller Address of the controller which is authorized to send messages to the module from a remote domain.
     /// @param _controllerDomain Domain of the controller which is authorized to send messages to the module.
-    // Domains are defined as unique identifiers within Nomad for a domain (chain, L1, L2, sidechain, rollup, etc).
+    /// Domains are unique identifiers within Nomad for a domain (chain, L1, L2, sidechain, rollup, etc).
     constructor(
         address _owner,
         address _avatar,
@@ -80,7 +87,7 @@ contract GnomadModule is Module {
     }
 
     /// @dev Set the Replica contract address
-    /// @param _manager Address of the xApp Manager contract,
+    /// @param _manager Address of the Nomad xAppConnectionManager contract,
     /// which registers valid Replica contracts and Watchers
     /// @notice This can only be called by the owner
     function setManager(IXAppConnectionManager _manager) public onlyOwner {
@@ -98,11 +105,10 @@ contract GnomadModule is Module {
         controllerDomain = _controllerDomain;
     }
 
-    /// @notice Handle Nomad messages
-    /// For all non-Governor chains to handle messages
-    /// sent from the Governor chain via Nomad.
-    /// Governor chain should never receive messages,
-    /// because non-Governor chains are not able to send them
+    /// @notice Handle incoming execTransactions sent from the Controller via Nomad
+    /// the controller is authorized to send execTransactions across-chains
+    /// from the controller's native domain to be executed on this module
+    /// execTransactions are sent via Nomad arbitrary message-passing channels
     /// @param _origin The domain from which the message was sent (must be the domain of the controller)
     /// @param _sender The message sender (must be the controller)
     /// @param _message The message (abi-encoded params for executeTransaction)
@@ -121,7 +127,7 @@ contract GnomadModule is Module {
         executeTransaction(_to, _value, _data, _operation);
     }
 
-    /// @dev Executes a transaction initated by the Nomad Bridge
+    /// @dev Executes a transaction initiated by the remote controller
     /// @param to Target of the transaction that should be executed
     /// @param value Wei value of the transaction that should be executed
     /// @param data Data of the transaction that should be executed
@@ -135,6 +141,9 @@ contract GnomadModule is Module {
         require(exec(to, value, data, operation), "Module transaction failed");
     }
 
+    /// @param _controller Address of controller on the other side of the bridge
+    /// @param _controllerDomain Domain of controller on the other side of the bridge
+    /// @return TRUE if the provided (address,domain) tuple identifies the authorized remote controller
     function isController(address _controller, uint32 _controllerDomain) public view returns (bool) {
         return _controller == controller && _controllerDomain == controllerDomain;
     }
