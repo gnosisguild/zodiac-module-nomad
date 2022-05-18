@@ -1,8 +1,7 @@
 # zodiac-module-gnomad
 
 [![Build Status](https://github.com/gnosis/zodiac-module-gnomad/actions/workflows/ci.yml/badge.svg)](https://github.com/gnosis/zodiac-module-gnomad/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-module-gnomad/badge.svg?branch=master)](https://coveralls.io/github/gnosis/zodiac-module-gnomad?branch=master)
-
+[![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-module-gnomad/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-module-bridge?branch=main)
 
 The Gnomad Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools, which can be accessed through the Zodiac App available on [Gnosis Safe](https://gnosis-safe.io/), as well as in this repository. 
 
