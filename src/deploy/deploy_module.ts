@@ -8,7 +8,7 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
   const { deploy } = deployments;
-  const chainId = formatBytes32String("0");
+  const chainId = 0;
   const args = [
     FirstAddress,
     FirstAddress,
@@ -18,7 +18,7 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     chainId,
   ];
 
-  await deploy("AMBModule", {
+  await deploy("GnomadModule", {
     from: deployer,
     args,
     log: true,
@@ -26,5 +26,5 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 
-deploy.tags = ["amb-module"];
+deploy.tags = ["gnomad-module"];
 export default deploy;
