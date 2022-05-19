@@ -40,7 +40,7 @@ describe("GnomadModule", async () => {
     return { ...base, Module, module, network, origin, controller };
   });
 
-  const [user1] = waffle.provider.getWallets();
+  const [user1, user2] = waffle.provider.getWallets();
 
   describe("setUp()", async () => {
     it("throws if avatar is address zero", async () => {
@@ -131,25 +131,12 @@ describe("GnomadModule", async () => {
       );
     });
 
-    it("throws if already set to input address", async () => {
+    it("throws if already set to both origin and controlleer", async () => {
       const { module, avatar } = await setupTestWithTestAvatar();
       const currentChainID = 0;
-      const calldata = module.interface.encodeFunctionData("setController", [
-        user1.address, currentChainID,
-      ]);
-      await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
-        "controller already set to this"
-      );
-    });
-
-    it.only("throws if already set to input address", async () => {
-      const { module, avatar, controller } = await setupTestWithTestAvatar();
-      const newChainID = FortyTwo;
       let _controller = await module.controller()
-      console.log(_controller)
-      console.log(controller)
       const calldata = module.interface.encodeFunctionData("setController", [
-        _controller, newChainID,
+        _controller, currentChainID,
       ]);
       await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
         "controller already set to this"
@@ -188,51 +175,61 @@ describe("GnomadModule", async () => {
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      const sender = utils.solidityPack(["bytes32"], [controller]);
-      // const encoded = utils.defaultAbiCoder.encode(
-      //   ["address", "uint256", "bytes", "uint8"],
-      //   [tx.to, tx.value, tx.data, tx.operation]
-      // );
-        // uint32 _origin,
-        // uint32, // _nonce (unused)
-        // bytes32 _sender,
-        // bytes memory _message
+      const bytes32controller = controller.concat("000000000000000000000000")
       await expect(
-        module.handle(
+        module.connect(user2).handle(
           origin,
           0,
-          sender,
+          bytes32controller,
           encoded
         )
       ).to.be.revertedWith("caller must be a valid replica");
     });
 
     it("throws if origin is unauthorized", async () => {
-      const { mock, module, connectionManager } = await setupTestWithTestAvatar();
-      const gnomadTx = await module.populateTransaction.executeTransaction(
-        user1.address,
-        0,
-        "0xbaddad",
-        0
+      const { module, origin, controller } = await setupTestWithTestAvatar();
+      const tx = {
+        to: user1.address,
+        value: 0,
+        data: "0xbaddad",
+        operation: 0,
+      };
+      const encoded = utils.solidityPack(
+        ["address", "uint256", "bytes", "uint8"],
+        [tx.to, tx.value, tx.data, tx.operation]
       );
-      // todo
-      await expect(mock.exec(module.address, 0, gnomadTx.data)).to.be.revertedWith(
-        "Unauthorized chainId"
-      );
+      const bytes32controller = controller.concat("000000000000000000000000")
+      await expect(
+        module.handle(
+          42,
+          0,
+          bytes32controller,
+          encoded
+        )
+      ).to.be.revertedWith("Unauthorized controller");
     });
 
-    it("throws if messageSender is unauthorized", async () => {
-      const { mock, module, signers, connectionManager } = await setupTestWithTestAvatar();
-      const gnomadTx = await module.populateTransaction.executeTransaction(
-        user1.address,
-        0,
-        "0xbaddad",
-        0
+    it.only("throws if controller is unauthorized", async () => {
+      const { module, origin, controller } = await setupTestWithTestAvatar();
+      const tx = {
+        to: user1.address,
+        value: 0,
+        data: "0xbaddad",
+        operation: 0,
+      };
+      const encoded = utils.solidityPack(
+        ["address", "uint256", "bytes", "uint8"],
+        [tx.to, tx.value, tx.data, tx.operation]
       );
-
-      await expect(mock.exec(module.address, 0, gnomadTx.data)).to.be.revertedWith(
-        "Unauthorized controller"
-      );
+      const bytes32controller = controller.concat("000000000000000000000000")
+      await expect(
+        module.handle(
+          origin,
+          0,
+          bytes32controller,
+          encoded
+        )
+      ).to.be.revertedWith("Unauthorized controller");
     });
 
     it("throws if module transaction fails", async () => {

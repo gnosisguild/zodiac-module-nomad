@@ -21,7 +21,7 @@
     "type": "git",
     "url": "https://github.com/gnosis/zodiac.git"
   },
-  "author": "richard@gnosis.io",
+  "author": "nathan.ginnever@gnosis.pm",
   "license": "MIT",
   "devDependencies": {
     "@gnosis.pm/zodiac": "1.0.10",
