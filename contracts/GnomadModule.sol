@@ -52,7 +52,7 @@ contract GnomadModule is Module {
         setUp(initParams);
     }
 
-    function setUp(bytes memory initParams) public override {
+    function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
             address _avatar,

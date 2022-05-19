@@ -1,13 +1,12 @@
 import { expect } from "chai";
 import hre, { deployments, waffle } from "hardhat";
+import { utils } from "ethers";
 import "@nomiclabs/hardhat-ethers";
 
 const ZeroAddress = "0x0000000000000000000000000000000000000000";
-const FortyTwo =
-  "0x000000000000000000000000000000000000000000000000000000000000002a";
+const FortyTwo = 42;
 
 describe("GnomadModule", async () => {
-
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
     const Avatar = await hre.ethers.getContractFactory("TestAvatar");
@@ -18,8 +17,6 @@ describe("GnomadModule", async () => {
     const connectionManager = await ConnectionManager.deploy();
 
     const signers = await hre.ethers.getSigners();
-    console.log(signers[0].address)
-    console.log('------')
     return { Avatar, avatar, module, mock, connectionManager, signers };
   });
 
@@ -46,18 +43,18 @@ describe("GnomadModule", async () => {
   const [user1] = waffle.provider.getWallets();
 
   describe("setUp()", async () => {
-    it.only("throws if avatar is address zero", async () => {
+    it("throws if avatar is address zero", async () => {
       const { Module } = await setupTestWithTestAvatar();
-      // await expect(
-      //   Module.deploy(
-      //     ZeroAddress,
-      //     ZeroAddress,
-      //     ZeroAddress,
-      //     ZeroAddress,
-      //     ZeroAddress,
-      //     0
-      //   )
-      // ).to.be.revertedWith("Avatar can not be zero address");
+      await expect(
+        Module.deploy(
+          ZeroAddress,
+          ZeroAddress,
+          ZeroAddress,
+          ZeroAddress,
+          ZeroAddress,
+          0
+        )
+      ).to.be.revertedWith("Avatar can not be zero address");
     });
 
     it("should emit event because of successful set up", async () => {
@@ -67,7 +64,7 @@ describe("GnomadModule", async () => {
         user1.address,
         user1.address,
         user1.address,
-        "0x0",
+        user1.address,
         0
       );
       await module.deployed();
@@ -84,8 +81,8 @@ describe("GnomadModule", async () => {
           user1.address,
           ZeroAddress,
           ZeroAddress,
-        "0x0",
-        0
+          ZeroAddress,
+          0
         )
       ).to.be.revertedWith("Target can not be zero address");
     });
@@ -108,7 +105,7 @@ describe("GnomadModule", async () => {
         connectionManager.address,
       ]);
       await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
-        "Connection Manager address already set to this"
+        "Replica address already set to this"
       );
     });
 
@@ -126,93 +123,88 @@ describe("GnomadModule", async () => {
     });
   });
 
-  describe("setOrigin()", async () => {
+  describe("setController()", async () => {
     it("throws if not authorized", async () => {
       const { module } = await setupTestWithTestAvatar();
-      await expect(module.setOrigin(FortyTwo)).to.be.revertedWith(
+      await expect(module.setController(user1.address, FortyTwo)).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("throws if already set to input address", async () => {
-      const { module, avatar, network } = await setupTestWithTestAvatar();
-      const currentChainID = await module.chainId();
-      // todo convert chainID
-      const calldata = module.interface.encodeFunctionData("setOrigin", [
-        currentChainID,
-      ]);
-      await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
-        "chainId already set to this"
-      );
-    });
-
-    it("updates origin", async () => {
-      const { module, avatar, network } = await setupTestWithTestAvatar();
-      let currentChainID = await module.chainId();
-      const newChainID = FortyTwo;
-      expect(await currentChainID._hex).to.not.equals(newChainID);
-
-      const calldata = module.interface.encodeFunctionData("setOrigin", [
-        newChainID,
-      ]);
-      avatar.exec(module.address, 0, calldata);
-
-      currentChainID = await module.chainId();
-
-      expect(await currentChainID).to.be.equals(newChainID);
-    });
-  });
-
-  describe("setController()", async () => {
-    it("throws if not authorized", async () => {
-      const { module, signers } = await setupTestWithTestAvatar();
-      await expect(
-        module.connect(signers[3]).setController(user1.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-
-    it("throws if already set to input address", async () => {
       const { module, avatar } = await setupTestWithTestAvatar();
-      const currentController = await module.controller();
-
+      const currentChainID = 0;
       const calldata = module.interface.encodeFunctionData("setController", [
-        currentController,
+        user1.address, currentChainID,
       ]);
       await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
         "controller already set to this"
       );
     });
 
-    it("updates controller", async () => {
-      const { module, avatar, signers } = await setupTestWithTestAvatar();
-      let currentController = await module.owner();
-      let newController = signers[1].address;
+    it.only("throws if already set to input address", async () => {
+      const { module, avatar, controller } = await setupTestWithTestAvatar();
+      const newChainID = FortyTwo;
+      let _controller = await module.controller()
+      console.log(_controller)
+      console.log(controller)
+      const calldata = module.interface.encodeFunctionData("setController", [
+        _controller, newChainID,
+      ]);
+      await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
+        "controller already set to this"
+      );
+    });
 
-      expect(await currentController).to.not.equals(signers[1].address);
+    it("updates controller and controllerDomain", async () => {
+      const { module, avatar, network } = await setupTestWithTestAvatar();
+      let currentChainID = await module.controllerDomain();
+      const newChainID = FortyTwo;
+      expect(currentChainID).to.not.equals(newChainID);
 
       const calldata = module.interface.encodeFunctionData("setController", [
-        newController,
+        user1.address, newChainID,
       ]);
       avatar.exec(module.address, 0, calldata);
 
-      currentController = await module.controller();
-      expect(await module.controller()).to.be.equals(newController);
+      currentChainID = await module.controllerDomain();
+      let currentController = await module.controller();
+
+      expect(await currentChainID).to.be.equals(newChainID);
+      expect(await currentController).to.be.equals(user1.address);
     });
   });
 
   describe("executeTrasnaction()", async () => {
     it("throws if manager replica is unauthorized", async () => {
-      const { module } = await setupTestWithTestAvatar();
+      const { module, origin, controller } = await setupTestWithTestAvatar();
       const tx = {
         to: user1.address,
         value: 0,
         data: "0xbaddad",
         operation: 0,
       };
-      //todo
+      const encoded = utils.solidityPack(
+        ["address", "uint256", "bytes", "uint8"],
+        [tx.to, tx.value, tx.data, tx.operation]
+      );
+      const sender = utils.solidityPack(["bytes32"], [controller]);
+      // const encoded = utils.defaultAbiCoder.encode(
+      //   ["address", "uint256", "bytes", "uint8"],
+      //   [tx.to, tx.value, tx.data, tx.operation]
+      // );
+        // uint32 _origin,
+        // uint32, // _nonce (unused)
+        // bytes32 _sender,
+        // bytes memory _message
       await expect(
-        module.handle()
-      ).to.be.revertedWith("Unauthorized replica");
+        module.handle(
+          origin,
+          0,
+          sender,
+          encoded
+        )
+      ).to.be.revertedWith("caller must be a valid replica");
     });
 
     it("throws if origin is unauthorized", async () => {
