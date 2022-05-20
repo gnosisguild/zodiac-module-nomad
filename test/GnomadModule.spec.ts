@@ -2,6 +2,7 @@ import { expect } from "chai";
 import hre, { deployments, waffle } from "hardhat";
 import { utils } from "ethers";
 import "@nomiclabs/hardhat-ethers";
+import { utils as Utils } from '@nomad-xyz/multi-provider';
 
 const ZeroAddress = "0x0000000000000000000000000000000000000000";
 const FortyTwo = 42;
@@ -221,7 +222,8 @@ describe("GnomadModule", async () => {
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      const bytes32controller = controller.concat("000000000000000000000000")
+      let bytes32controller = utils.hexlify(Utils.canonizeId(controller))
+      console.log(bytes32controller)
       await expect(
         module.handle(
           origin,
