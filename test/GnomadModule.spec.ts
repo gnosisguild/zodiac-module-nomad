@@ -172,7 +172,7 @@ describe("GnomadModule", async () => {
         data: "0xbaddad",
         operation: 0,
       };
-      const encoded = utils.solidityPack(
+      const encoded = utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
@@ -195,7 +195,7 @@ describe("GnomadModule", async () => {
         data: "0xbaddad",
         operation: 0,
       };
-      const encoded = utils.solidityPack(
+      const encoded = utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
@@ -210,20 +210,20 @@ describe("GnomadModule", async () => {
       ).to.be.revertedWith("Unauthorized controller");
     });
 
-    it.only("throws if controller is unauthorized", async () => {
+    it("throws if controller is unauthorized", async () => {
       const { module, origin, controller } = await setupTestWithTestAvatar();
+      const badController = user2.address
       const tx = {
         to: user1.address,
         value: 0,
         data: "0xbaddad",
         operation: 0,
       };
-      const encoded = utils.solidityPack(
+      const encoded = utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      let bytes32controller = utils.hexlify(Utils.canonizeId(controller))
-      console.log(bytes32controller)
+      let bytes32controller = utils.hexlify(Utils.canonizeId(badController))
       await expect(
         module.handle(
           origin,
@@ -234,38 +234,31 @@ describe("GnomadModule", async () => {
       ).to.be.revertedWith("Unauthorized controller");
     });
 
-    it("throws if module transaction fails", async () => {
-      const { mock, module } = await setupTestWithTestAvatar();
-      const gnomadTx = await module.populateTransaction.executeTransaction(
-        user1.address,
-        10000000,
-        "0xbaddad",
-        0
-      );
-
-      // should fail because value is too high
-      await expect(mock.exec(module.address, 0, gnomadTx.data)).to.be.revertedWith(
-        "Module transaction failed"
-      );
-    });
-
     it("executes a transaction", async () => {
-      const { mock, module, signers } = await setupTestWithTestAvatar();
-
-      const moduleTx = await module.populateTransaction.setController(
-        signers[1].address
-      );
-
-      const gnomadTx = await module.populateTransaction.executeTransaction(
-        module.address,
-        0,
-        moduleTx.data,
+      const { module, origin, controller } = await setupTestWithTestAvatar();
+      const avatarTx = await module.populateTransaction.setController(
+        user2.address,
         0
       );
+      const tx = {
+        to: module.address,
+        value: 0,
+        data: avatarTx.data,
+        operation: 0,
+      };
+      const encoded = utils.defaultAbiCoder.encode(
+        ["address", "uint256", "bytes", "uint8"],
+        [tx.to, tx.value, tx.data, tx.operation]
+      );
+      let bytes32controller = utils.hexlify(Utils.canonizeId(controller))
+      await module.handle(
+        origin,
+        0,
+        bytes32controller,
+        encoded
+      );
 
-      await mock.exec(module.address, 0, gnomadTx.data);
-
-      expect(await module.controller()).to.be.equals(signers[1].address);
+      expect(await module.controller()).to.be.equals(user2.address);
     });
   });
 });
