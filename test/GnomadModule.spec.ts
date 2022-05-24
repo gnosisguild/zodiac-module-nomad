@@ -253,7 +253,7 @@ describe("GnomadModule", async () => {
       const { module, controller } = await setupTestWithTestAvatar();
       const avatarTx = await module.populateTransaction.setController(
         user2.address,
-        0
+        42
       );
       const tx = {
         to: module.address,
@@ -269,6 +269,7 @@ describe("GnomadModule", async () => {
       await module.handle(controllerDomain, 0, bytes32controller, encoded);
 
       expect(await module.controller()).to.be.equals(user2.address);
+      expect(await module.controllerDomain()).to.be.equals(42);
     });
   });
 });

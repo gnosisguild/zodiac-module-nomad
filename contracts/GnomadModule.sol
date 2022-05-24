@@ -115,6 +115,8 @@ contract GnomadModule is Module {
     public
     onlyOwner
   {
+    require(_controller != address(0), "Controller can not be zero address");
+    require(_controllerDomain != 0, "Controller Domain can not be zero");
     require(
       !isController(_controller, _controllerDomain),
       "controller already set to this"
