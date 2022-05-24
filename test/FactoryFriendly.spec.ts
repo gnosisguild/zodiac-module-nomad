@@ -23,7 +23,7 @@ describe("Module works with factory", () => {
       FirstAddress,
       FirstAddress,
       FirstAddress,
-      0
+      1
     );
 
     return { factory, masterCopy };
@@ -56,7 +56,7 @@ describe("Module works with factory", () => {
       avatar.address,
       manager.address,
       controller.address,
-      0
+      1
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
     const initParams = masterCopy.interface.encodeFunctionData(
@@ -79,6 +79,6 @@ describe("Module works with factory", () => {
       newProxyAddress
     );
     expect(await newProxy.controller()).to.be.eq(controller.address);
-    expect(await newProxy.controllerDomain()).to.be.eq(0);
+    expect(await newProxy.controllerDomain()).to.be.eq(1);
   });
 });

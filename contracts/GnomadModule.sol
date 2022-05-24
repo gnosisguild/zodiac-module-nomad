@@ -66,6 +66,8 @@ contract GnomadModule is Module {
 
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
+        require(_controller != address(0), "Controller can not be zero address");
+        require(_controllerDomain != 0, "Controller Domain can not be zero");
         avatar = _avatar;
         target = _target;
         manager = IXAppConnectionManager(_manager);

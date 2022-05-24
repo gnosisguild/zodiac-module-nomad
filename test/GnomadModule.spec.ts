@@ -6,6 +6,8 @@ import { utils as Utils } from '@nomad-xyz/multi-provider';
 
 const ZeroAddress = "0x0000000000000000000000000000000000000000";
 const FortyTwo = 42;
+const controllerDomain = 1;
+
 
 describe("GnomadModule", async () => {
   const baseSetup = deployments.createFixture(async () => {
@@ -28,17 +30,16 @@ describe("GnomadModule", async () => {
     const network = await provider.getNetwork();
     const controller = base.signers[0].address;
     // TODO: convert home chainID to uint32
-    const origin = 0;
     const module = await Module.deploy(
       base.avatar.address,
       base.avatar.address,
       base.avatar.address,
       base.connectionManager.address,
       controller,
-      origin
+      controllerDomain
     );
     await base.avatar.setModule(module.address);
-    return { ...base, Module, module, network, origin, controller };
+    return { ...base, Module, module, network, controller };
   });
 
   const [user1, user2] = waffle.provider.getWallets();
@@ -53,7 +54,7 @@ describe("GnomadModule", async () => {
           ZeroAddress,
           ZeroAddress,
           ZeroAddress,
-          0
+          controllerDomain
         )
       ).to.be.revertedWith("Avatar can not be zero address");
     });
@@ -66,7 +67,7 @@ describe("GnomadModule", async () => {
         user1.address,
         user1.address,
         user1.address,
-        0
+        controllerDomain
       );
       await module.deployed();
       await expect(module.deployTransaction)
@@ -83,7 +84,7 @@ describe("GnomadModule", async () => {
           ZeroAddress,
           ZeroAddress,
           ZeroAddress,
-          0
+          controllerDomain
         )
       ).to.be.revertedWith("Target can not be zero address");
     });
@@ -132,9 +133,9 @@ describe("GnomadModule", async () => {
       );
     });
 
-    it("throws if already set to both origin and controlleer", async () => {
+    it("throws if already set to both controllerDomain and controlleer", async () => {
       const { module, avatar } = await setupTestWithTestAvatar();
-      const currentChainID = 0;
+      const currentChainID = controllerDomain;
       let _controller = await module.controller()
       const calldata = module.interface.encodeFunctionData("setController", [
         _controller, currentChainID,
@@ -165,7 +166,7 @@ describe("GnomadModule", async () => {
 
   describe("executeTrasnaction()", async () => {
     it("throws if manager replica is unauthorized", async () => {
-      const { module, origin, controller } = await setupTestWithTestAvatar();
+      const { module, controller } = await setupTestWithTestAvatar();
       const tx = {
         to: user1.address,
         value: 0,
@@ -179,7 +180,7 @@ describe("GnomadModule", async () => {
       const bytes32controller = controller.concat("000000000000000000000000")
       await expect(
         module.connect(user2).handle(
-          origin,
+          controllerDomain,
           0,
           bytes32controller,
           encoded
@@ -187,8 +188,8 @@ describe("GnomadModule", async () => {
       ).to.be.revertedWith("caller must be a valid replica");
     });
 
-    it("throws if origin is unauthorized", async () => {
-      const { module, origin, controller } = await setupTestWithTestAvatar();
+    it("throws if controllerDomain is unauthorized", async () => {
+      const { module, controller } = await setupTestWithTestAvatar();
       const tx = {
         to: user1.address,
         value: 0,
@@ -211,7 +212,7 @@ describe("GnomadModule", async () => {
     });
 
     it("throws if controller is unauthorized", async () => {
-      const { module, origin, controller } = await setupTestWithTestAvatar();
+      const { module, controller } = await setupTestWithTestAvatar();
       const badController = user2.address
       const tx = {
         to: user1.address,
@@ -226,7 +227,7 @@ describe("GnomadModule", async () => {
       let bytes32controller = utils.hexlify(Utils.canonizeId(badController))
       await expect(
         module.handle(
-          origin,
+          controllerDomain,
           0,
           bytes32controller,
           encoded
@@ -235,7 +236,7 @@ describe("GnomadModule", async () => {
     });
 
     it("executes a transaction", async () => {
-      const { module, origin, controller } = await setupTestWithTestAvatar();
+      const { module, controller } = await setupTestWithTestAvatar();
       const avatarTx = await module.populateTransaction.setController(
         user2.address,
         0
@@ -252,7 +253,7 @@ describe("GnomadModule", async () => {
       );
       let bytes32controller = utils.hexlify(Utils.canonizeId(controller))
       await module.handle(
-        origin,
+        controllerDomain,
         0,
         bytes32controller,
         encoded
