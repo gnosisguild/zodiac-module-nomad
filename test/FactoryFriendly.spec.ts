@@ -7,9 +7,16 @@ const FirstAddress = "0x0000000000000000000000000000000000000001";
 const saltNonce = "0xfa";
 
 describe("Module works with factory", () => {
-  const chainId = formatBytes32String("55")
+  const chainId = formatBytes32String("55");
 
-  const paramsTypes = ["address", "address", "address", "address", "address", "uint32"];
+  const paramsTypes = [
+    "address",
+    "address",
+    "address",
+    "address",
+    "address",
+    "uint32",
+  ];
 
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
@@ -39,7 +46,7 @@ describe("Module works with factory", () => {
       avatar.address,
       manager.address,
       controller.address,
-      0
+      0,
     ]);
 
     await expect(masterCopy.setUp(encodedParams)).to.be.revertedWith(
@@ -56,7 +63,7 @@ describe("Module works with factory", () => {
       avatar.address,
       manager.address,
       controller.address,
-      1
+      1,
     ];
     const encodedParams = [new AbiCoder().encode(paramsTypes, paramsValues)];
     const initParams = masterCopy.interface.encodeFunctionData(

@@ -2,12 +2,11 @@ import { expect } from "chai";
 import hre, { deployments, waffle } from "hardhat";
 import { utils } from "ethers";
 import "@nomiclabs/hardhat-ethers";
-import { utils as Utils } from '@nomad-xyz/multi-provider';
+import { utils as Utils } from "@nomad-xyz/multi-provider";
 
 const ZeroAddress = "0x0000000000000000000000000000000000000000";
 const FortyTwo = 42;
 const controllerDomain = 1;
-
 
 describe("GnomadModule", async () => {
   const baseSetup = deployments.createFixture(async () => {
@@ -16,7 +15,9 @@ describe("GnomadModule", async () => {
     const avatar = await Avatar.deploy();
     const Mock = await hre.ethers.getContractFactory("Mock");
     const mock = await Mock.deploy();
-    const ConnectionManager = await hre.ethers.getContractFactory("MockConnectionManager");
+    const ConnectionManager = await hre.ethers.getContractFactory(
+      "MockConnectionManager"
+    );
     const connectionManager = await ConnectionManager.deploy();
 
     const signers = await hre.ethers.getSigners();
@@ -99,7 +100,8 @@ describe("GnomadModule", async () => {
     });
 
     it("throws if already set to input address", async () => {
-      const { module, avatar, connectionManager } = await setupTestWithTestAvatar();
+      const { module, avatar, connectionManager } =
+        await setupTestWithTestAvatar();
 
       expect(await module.manager()).to.be.equals(connectionManager.address);
 
@@ -112,7 +114,8 @@ describe("GnomadModule", async () => {
     });
 
     it("updates ConnectionManager address", async () => {
-      const { module, avatar, connectionManager } = await setupTestWithTestAvatar();
+      const { module, avatar, connectionManager } =
+        await setupTestWithTestAvatar();
 
       expect(await module.manager()).to.be.equals(connectionManager.address);
 
@@ -128,17 +131,18 @@ describe("GnomadModule", async () => {
   describe("setController()", async () => {
     it("throws if not authorized", async () => {
       const { module } = await setupTestWithTestAvatar();
-      await expect(module.setController(user1.address, FortyTwo)).to.be.revertedWith(
-        "Ownable: caller is not the owner"
-      );
+      await expect(
+        module.setController(user1.address, FortyTwo)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("throws if already set to both controllerDomain and controlleer", async () => {
       const { module, avatar } = await setupTestWithTestAvatar();
       const currentChainID = controllerDomain;
-      let _controller = await module.controller()
+      let _controller = await module.controller();
       const calldata = module.interface.encodeFunctionData("setController", [
-        _controller, currentChainID,
+        _controller,
+        currentChainID,
       ]);
       await expect(avatar.exec(module.address, 0, calldata)).to.be.revertedWith(
         "controller already set to this"
@@ -152,7 +156,8 @@ describe("GnomadModule", async () => {
       expect(currentChainID).to.not.equals(newChainID);
 
       const calldata = module.interface.encodeFunctionData("setController", [
-        user1.address, newChainID,
+        user1.address,
+        newChainID,
       ]);
       avatar.exec(module.address, 0, calldata);
 
@@ -177,14 +182,11 @@ describe("GnomadModule", async () => {
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      const bytes32controller = controller.concat("000000000000000000000000")
+      const bytes32controller = controller.concat("000000000000000000000000");
       await expect(
-        module.connect(user2).handle(
-          controllerDomain,
-          0,
-          bytes32controller,
-          encoded
-        )
+        module
+          .connect(user2)
+          .handle(controllerDomain, 0, bytes32controller, encoded)
       ).to.be.revertedWith("caller must be a valid replica");
     });
 
@@ -200,20 +202,15 @@ describe("GnomadModule", async () => {
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      const bytes32controller = controller.concat("000000000000000000000000")
+      let bytes32controller = utils.hexlify(Utils.canonizeId(controller));
       await expect(
-        module.handle(
-          42,
-          0,
-          bytes32controller,
-          encoded
-        )
+        module.handle(42, 0, bytes32controller, encoded)
       ).to.be.revertedWith("Unauthorized controller");
     });
 
     it("throws if controller is unauthorized", async () => {
       const { module, controller } = await setupTestWithTestAvatar();
-      const badController = user2.address
+      const badController = user2.address;
       const tx = {
         to: user1.address,
         value: 0,
@@ -224,15 +221,32 @@ describe("GnomadModule", async () => {
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      let bytes32controller = utils.hexlify(Utils.canonizeId(badController))
+      let bytes32controller = utils.hexlify(Utils.canonizeId(badController));
       await expect(
-        module.handle(
-          controllerDomain,
-          0,
-          bytes32controller,
-          encoded
-        )
+        module.handle(controllerDomain, 0, bytes32controller, encoded)
       ).to.be.revertedWith("Unauthorized controller");
+    });
+
+    it("throws if controller is not padded with 0", async () => {
+      const { module, controller } = await setupTestWithTestAvatar();
+      const tx = {
+        to: user1.address,
+        value: 0,
+        data: "0xbaddad",
+        operation: 0,
+      };
+      const encoded = utils.defaultAbiCoder.encode(
+        ["address", "uint256", "bytes", "uint8"],
+        [tx.to, tx.value, tx.data, tx.operation]
+      );
+      let bytes32controller = utils.hexlify(Utils.canonizeId(controller));
+      let badController =
+        bytes32controller.substring(0, 25) +
+        "1" +
+        bytes32controller.substring(26, bytes32controller.length);
+      await expect(
+        module.handle(1, 0, badController, encoded)
+      ).to.be.revertedWith("first 12 bytes of sender must be 0");
     });
 
     it("executes a transaction", async () => {
@@ -251,13 +265,8 @@ describe("GnomadModule", async () => {
         ["address", "uint256", "bytes", "uint8"],
         [tx.to, tx.value, tx.data, tx.operation]
       );
-      let bytes32controller = utils.hexlify(Utils.canonizeId(controller))
-      await module.handle(
-        controllerDomain,
-        0,
-        bytes32controller,
-        encoded
-      );
+      let bytes32controller = utils.hexlify(Utils.canonizeId(controller));
+      await module.handle(controllerDomain, 0, bytes32controller, encoded);
 
       expect(await module.controller()).to.be.equals(user2.address);
     });
