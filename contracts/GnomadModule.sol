@@ -15,6 +15,18 @@ contract GnomadModule is Module {
     address target
   );
 
+  event GnomadModuleManagerUpdated(
+    IXAppConnectionManager indexed previousManager,
+    IXAppConnectionManager indexed newManager
+  );
+
+  event GnomadModuleControllerUpdated(
+    address indexed previousController,
+    address indexed newController,
+    uint32 indexed previousDomain,
+    uint32 newDomain
+  );
+
   /// Address of the Nomad xAppConnectionManager contract
   /// which registers valid Replica contracts and Watchers
   IXAppConnectionManager public manager;
@@ -104,7 +116,9 @@ contract GnomadModule is Module {
   /// @notice This can only be called by the owner
   function setManager(IXAppConnectionManager _manager) public onlyOwner {
     require(manager != _manager, "Replica address already set to this");
+    IXAppConnectionManager _previousManager = manager;
     manager = _manager;
+    emit GnomadModuleManagerUpdated(_previousManager, manager);
   }
 
   /// @dev Set the controller
@@ -121,8 +135,11 @@ contract GnomadModule is Module {
       !isController(_controller, _controllerDomain),
       "controller already set to this"
     );
+    uint32 _previousDomain = controllerDomain;
+    address _previousController = controller;
     controller = _controller;
     controllerDomain = _controllerDomain;
+    emit GnomadModuleControllerUpdated(_previousController, controller, _previousDomain, controllerDomain);
   }
 
   /// @notice Handle incoming execTransactions sent from the Controller via Nomad
