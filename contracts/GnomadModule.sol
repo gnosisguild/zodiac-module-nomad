@@ -108,7 +108,8 @@ contract GnomadModule is Module {
     /// @notice Handle incoming execTransactions sent from the Controller via Nomad
     /// the controller is authorized to send execTransactions across-chains
     /// from the controller's native domain to be executed on this module
-    /// execTransactions are sent via Nomad arbitrary message-passing channels
+    /// exec Transactions are sent via Nomad arbitrary message-passing channels
+    /// Executes a transaction initiated by the remote controller
     /// @param _origin The domain from which the message was sent (must be the domain of the controller)
     /// @param _sender The message sender (must be the controller)
     /// @param _message The message (abi-encoded params for executeTransaction)
@@ -124,21 +125,7 @@ contract GnomadModule is Module {
             bytes memory _data,
             Enum.Operation _operation
         ) = abi.decode(_message, (address, uint256, bytes, Enum.Operation));
-        executeTransaction(_to, _value, _data, _operation);
-    }
-
-    /// @dev Executes a transaction initiated by the remote controller
-    /// @param to Target of the transaction that should be executed
-    /// @param value Wei value of the transaction that should be executed
-    /// @param data Data of the transaction that should be executed
-    /// @param operation Operation (Call or Delegatecall) of the transaction that should be executed
-    function executeTransaction(
-        address to,
-        uint256 value,
-        bytes memory data,
-        Enum.Operation operation
-    ) internal {
-        require(exec(to, value, data, operation), "Module transaction failed");
+        require(exec(_to, _value, _data, _operation), "Module transaction failed");
     }
 
     /// @param _controller Address of controller on the other side of the bridge
