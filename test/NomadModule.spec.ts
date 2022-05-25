@@ -8,7 +8,7 @@ const ZeroAddress = "0x0000000000000000000000000000000000000000";
 const FortyTwo = 42;
 const controllerDomain = 1;
 
-describe("GnomadModule", async () => {
+describe("NomadModule", async () => {
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
     const Avatar = await hre.ethers.getContractFactory("TestAvatar");
@@ -26,7 +26,7 @@ describe("GnomadModule", async () => {
 
   const setupTestWithTestAvatar = deployments.createFixture(async () => {
     const base = await baseSetup();
-    const Module = await hre.ethers.getContractFactory("GnomadModule");
+    const Module = await hre.ethers.getContractFactory("NomadModule");
     const provider = await hre.ethers.getDefaultProvider();
     const network = await provider.getNetwork();
     const controller = base.signers[0].address;
@@ -61,7 +61,7 @@ describe("GnomadModule", async () => {
     });
 
     it("should emit event because of successful set up", async () => {
-      const Module = await hre.ethers.getContractFactory("GnomadModule");
+      const Module = await hre.ethers.getContractFactory("NomadModule");
       const module = await Module.deploy(
         user1.address,
         user1.address,
@@ -72,7 +72,7 @@ describe("GnomadModule", async () => {
       );
       await module.deployed();
       await expect(module.deployTransaction)
-        .to.emit(module, "GnomadModuleSetup")
+        .to.emit(module, "NomadModuleSetup")
         .withArgs(user1.address, user1.address, user1.address, user1.address);
     });
 
@@ -91,7 +91,7 @@ describe("GnomadModule", async () => {
     });
   });
 
-  describe("setGnomad()", async () => {
+  describe("setNomad()", async () => {
     it("throws if not authorized", async () => {
       const { module } = await setupTestWithTestAvatar();
       await expect(module.setManager(module.address)).to.be.revertedWith(

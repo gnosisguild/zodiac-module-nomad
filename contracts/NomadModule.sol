@@ -7,20 +7,20 @@ interface IXAppConnectionManager {
   function isReplica(address _replica) external view returns (bool);
 }
 
-contract GnomadModule is Module {
-  event GnomadModuleSetup(
+contract NomadModule is Module {
+  event NomadModuleSetup(
     address indexed initiator,
     address indexed owner,
     address indexed avatar,
     address target
   );
 
-  event GnomadModuleManagerUpdated(
+  event NomadModuleManagerUpdated(
     IXAppConnectionManager indexed previousManager,
     IXAppConnectionManager indexed newManager
   );
 
-  event GnomadModuleControllerUpdated(
+  event NomadModuleControllerUpdated(
     address indexed previousController,
     address indexed newController,
     uint32 indexed previousDomain,
@@ -91,7 +91,7 @@ contract GnomadModule is Module {
 
     transferOwnership(_owner);
 
-    emit GnomadModuleSetup(msg.sender, _owner, _avatar, _target);
+    emit NomadModuleSetup(msg.sender, _owner, _avatar, _target);
   }
 
   /// @dev Check that the replica, origin, and controller are valid
@@ -118,7 +118,7 @@ contract GnomadModule is Module {
     require(manager != _manager, "Replica address already set to this");
     IXAppConnectionManager _previousManager = manager;
     manager = _manager;
-    emit GnomadModuleManagerUpdated(_previousManager, manager);
+    emit NomadModuleManagerUpdated(_previousManager, manager);
   }
 
   /// @dev Set the controller
@@ -139,7 +139,7 @@ contract GnomadModule is Module {
     address _previousController = controller;
     controller = _controller;
     controllerDomain = _controllerDomain;
-    emit GnomadModuleControllerUpdated(_previousController, controller, _previousDomain, controllerDomain);
+    emit NomadModuleControllerUpdated(_previousController, controller, _previousDomain, controllerDomain);
   }
 
   /// @notice Handle incoming execTransactions sent from the Controller via Nomad

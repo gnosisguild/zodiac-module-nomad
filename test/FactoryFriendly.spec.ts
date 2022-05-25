@@ -21,10 +21,10 @@ describe("Module works with factory", () => {
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
     const Factory = await hre.ethers.getContractFactory("ModuleProxyFactory");
-    const Gnomad = await hre.ethers.getContractFactory("GnomadModule");
+    const Nomad = await hre.ethers.getContractFactory("NomadModule");
     const factory = await Factory.deploy();
 
-    const masterCopy = await Gnomad.deploy(
+    const masterCopy = await Nomad.deploy(
       FirstAddress,
       FirstAddress,
       FirstAddress,
@@ -82,7 +82,7 @@ describe("Module works with factory", () => {
     );
 
     const newProxy = await hre.ethers.getContractAt(
-      "GnomadModule",
+      "NomadModule",
       newProxyAddress
     );
     expect(await newProxy.controller()).to.be.eq(controller.address);

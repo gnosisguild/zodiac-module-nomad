@@ -1,5 +1,5 @@
 {
-  "name": "@zodiac/gnomad",
+  "name": "@zodiac/nomad",
   "version": "1.0.0",
   "description": "An Arbitrary Message Bridge Nomad module for the Gnosis Safe",
   "directories": {

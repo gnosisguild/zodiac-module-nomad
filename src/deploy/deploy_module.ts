@@ -18,7 +18,7 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     chainId,
   ];
 
-  await deploy("GnomadModule", {
+  await deploy("NomadModule", {
     from: deployer,
     args,
     log: true,
@@ -26,5 +26,5 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 
-deploy.tags = ["gnomad-module"];
+deploy.tags = ["nomad-module"];
 export default deploy;
