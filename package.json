@@ -1,5 +1,5 @@
 {
-  "name": "@zodiac/gnomad",
+  "name": "@zodiac/nomad",
   "version": "1.0.0",
   "description": "An Arbitrary Message Bridge Nomad module for the Gnosis Safe",
   "directories": {
@@ -8,6 +8,7 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
+    "lint:fix-tests": "yarn prettier ./test/*.ts --write",
     "deploy": "hardhat deploy --network",
     "coverage": "hardhat coverage",
     "lint": "yarn lint:sol && yarn lint:ts",
