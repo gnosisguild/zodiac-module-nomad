@@ -17,7 +17,7 @@ This module allows an account on one network to control a avatar ([Gnosis Safe](
 
 ### Flow
 
-- On chain (a), deploy a Gnosis Safe and Nomad Module, specifying the `xAppConnectionManager` contract addres, the controller address on chain (b), and the domain of chain (b) that will be allowed to trigger execution via the Nomad Module.
+- On chain (a), deploy a Gnosis Safe and Nomad Module, specifying the `xAppConnectionManager` contract address, the controller address on chain (b), and the domain of chain (b) that will be allowed to trigger execution via the Nomad Module.
 - Enable Nomad Module on the Safe.
 - On chain (b), call `dispatch()` on the [home contract](https://github.com/nomad-xyz/monorepo/blob/main/packages/contracts-core/contracts/Home.sol).
 - On chain (a), call `proveAndProcess()` on the [Replica contract](https://github.com/nomad-xyz/monorepo/blob/main/packages/contracts-core/contracts/Replica.sol).
