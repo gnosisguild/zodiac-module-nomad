@@ -101,9 +101,6 @@ contract NomadModule is Module {
     bytes32 _sender
   ) {
     require(manager.isReplica(_caller), "caller must be a valid replica");
-    for (uint8 i = 0; i < 12; i++) {
-      require(_sender[i] == 0, "first 12 bytes of sender must be 0");
-    }
     // coerce Nomad bytes32 sender to address
     address _senderAddr = address(uint160(uint256(_sender)));
     require(isController(_senderAddr, _origin), "Unauthorized controller");

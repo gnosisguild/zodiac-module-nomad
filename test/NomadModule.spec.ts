@@ -227,28 +227,6 @@ describe("NomadModule", async () => {
       ).to.be.revertedWith("Unauthorized controller");
     });
 
-    it("throws if controller is not padded with 0", async () => {
-      const { module, controller } = await setupTestWithTestAvatar();
-      const tx = {
-        to: user1.address,
-        value: 0,
-        data: "0xbaddad",
-        operation: 0,
-      };
-      const encoded = utils.defaultAbiCoder.encode(
-        ["address", "uint256", "bytes", "uint8"],
-        [tx.to, tx.value, tx.data, tx.operation]
-      );
-      let bytes32controller = utils.hexlify(Utils.canonizeId(controller));
-      let badController =
-        bytes32controller.substring(0, 25) +
-        "1" +
-        bytes32controller.substring(26, bytes32controller.length);
-      await expect(
-        module.handle(1, 0, badController, encoded)
-      ).to.be.revertedWith("first 12 bytes of sender must be 0");
-    });
-
     it("executes a transaction", async () => {
       const { module, controller } = await setupTestWithTestAvatar();
       const avatarTx = await module.populateTransaction.setController(
