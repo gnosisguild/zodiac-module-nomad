@@ -1,7 +1,8 @@
 # zodiac-module-nomad
 
 [![Build Status](https://github.com/gnosis/zodiac-module-nomad/actions/workflows/ci.yml/badge.svg)](https://github.com/gnosis/zodiac-module-nomad/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-module-nomad/badge.svg?branch=main)](https://coveralls.io/github/gnosis/zodiac-module-bridge?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/gnosis/zodiac-module-nomad/badge.svg?branch=main&cache_bust=1)](https://coveralls.io/github/gnosis/zodiac-module-bridge?branch=main)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/gnosis/CODE_OF_CONDUCT)
 
 The Nomad Module belongs to the [Zodiac](https://github.com/gnosis/zodiac) collection of tools, which can be accessed through the Zodiac App available on [Gnosis Safe](https://gnosis-safe.io/), as well as in this repository. 
 
