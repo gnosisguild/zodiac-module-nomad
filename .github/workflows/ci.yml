@@ -1,4 +1,4 @@
-name: Gnomad
+name: Build
 on: [push]
 
 jobs:
